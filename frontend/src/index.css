@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+
+@theme{
+  --animate-movement: movement 3s ease-in-out infinite;
+
+  @keyframes movement {
+    0%, 100% {
+      transform: translateX(20px);
+    }
+    50% {
+      transform: translateX(0px); /* Moves slightly to the left */
+    }
+  }
+}
