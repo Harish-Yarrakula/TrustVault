@@ -1,35 +1,30 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-const AdminView = () => {
-  return (
-    <div>
-      <section className="relative overflow-hidden bg-white font-sans">
-        <div className='h-screen w-screen'>
-            <div className='w-2/10 h-full bg-[#171440] flex p-5 justify-between flex-col text-white'>
-                <div className=''>
-                  <a href="#" className="flex items-center space-x-2 text-xl font-bold tracking-tight">
-                  <img src="src/assets/logo.png" alt="TrustVaultLogo" className="flex items-center justify-center w-8 h-8 rounded-lg"/>
-                <span className="text-xl text-white">TrustVault</span>
-              </a>
-                </div>
-                <li className='flex flex-col gap-5'>
-               <Link>Dashboard</Link> 
-               <Link>Document Logs</Link>
-               <Link>User & Role Setting</Link>
-               <Link>Security & Auditing</Link>
-               <Link>Settings</Link>
-                </li>
-                <div>
-                    LogOut
-                </div>
-            </div>
-            <div className='w-8/10'>
+import { RoleViewLayout } from "./WorkspaceView";
 
-            </div>
-        </div>
-      </section>
-    </div>
-  )
-}
+const adminItems = [
+  {
+    label: "Dashboard",
+    description: "Monitor workspace health, activity, and security status.",
+  },
+  {
+    label: "Document Logs",
+    description: "Review document access, changes, uploads, and sharing events.",
+  },
+  {
+    label: "User & Role Setting",
+    description: "Manage users, permissions, and role assignments.",
+  },
+  {
+    label: "Security & Auditing",
+    description: "Review audit events and configure security controls.",
+  },
+  {
+    label: "Settings",
+    description: "Manage administrative and workspace-wide settings.",
+  },
+];
 
-export default AdminView
+const AdminView = () => (
+  <RoleViewLayout items={adminItems} role="admin" />
+);
+
+export default AdminView;

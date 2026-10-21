@@ -2,7 +2,7 @@ import React,{useState} from 'react'
 import AdminView from './roleviews/AdminView'
 import WorkspaceView from './roleviews/WorkspaceView'
 const User = () => {
-    const [CurrentUser,SetCurrentUser]=useState("min");
+    const [CurrentUser,SetCurrentUser]=useState("admin");
   return (
     <div>
     {

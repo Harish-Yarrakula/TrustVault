@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom';
 const App = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -55,18 +56,18 @@ const App = () => {
 
               {/* Desktop Auth CTAs */}
               <div className="hidden lg:flex items-center ml-auto">
-                <a href="#" className="inline-block mr-8 text-sm font-semibold text-orange-900 hover:text-gray-900 transition-colors">
+                <Link to="/auth/login" className="inline-block mr-8 text-sm font-semibold text-orange-900 hover:text-gray-900 transition-colors">
                   Sign In
-                </a>
-                <a
-                  href="#"
+                </Link>
+                <Link
+                  to="/auth/login"
                   className="relative group inline-block py-2.5 px-5 text-sm font-semibold text-orange-900 border border-gray-300 rounded-md overflow-hidden transition-colors"
                 >
                   <div className="absolute inset-0 w-full h-full bg-orange-900 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
                   <span className="relative group-hover:text-white transition-colors duration-300">
                     Create an account
                   </span>
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -190,12 +191,12 @@ const App = () => {
 
               {/* Mobile Auth Buttons */}
               <div className="space-y-3 mb-8">
-                <a href="#" className="block text-center w-full py-3 px-4 text-sm font-semibold text-orange-900 hover:bg-orange-50 rounded-lg transition-colors border border-gray-200">
+                <Link to="/auth/login" className="block text-center w-full py-3 px-4 text-sm font-semibold text-orange-900 hover:bg-orange-50 rounded-lg transition-colors border border-gray-200">
                   Sign In
-                </a>
-                <a href="#" className="block text-center w-full py-3 px-4 text-sm font-semibold text-white bg-orange-900 hover:bg-orange-800 rounded-lg transition-colors">
+                </Link>
+                <Link to="/auth/login" className="block text-center w-full py-3 px-4 text-sm font-semibold text-white bg-orange-900 hover:bg-orange-800 rounded-lg transition-colors">
                   Create an account
-                </a>
+                </Link>
               </div>
 
               {/* Footer Support Info */}
