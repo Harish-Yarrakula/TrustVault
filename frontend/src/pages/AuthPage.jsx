@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { setAccessToken } from "../api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+if (import.meta.env.PROD && (!import.meta.env.VITE_API_URL || !API_URL.startsWith("https://"))) {
+  throw new Error("VITE_API_URL must be an HTTPS URL in production.");
+}
 
 const features = [
-  {
-    tag: "Instant Setup",
-    title: "Deploy in Minutes",
-    description:
-      "Pre-configured workflows, instant cloud environments, and robust boilerplates let you launch your next big idea with zero friction.",
-  },
   {
     tag: "Enterprise Security",
     title: "End-to-End Protection",
@@ -22,15 +23,21 @@ const features = [
 ];
 
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   // State for the Social Login "Coming Soon" popup
   const [comingSoonProvider, setComingSoonProvider] = useState(null);
 
   const [formData, setFormData] = useState({
     fullName: "",
+    companyName: "",
+    role: "MEMBER",
     email: "",
     password: "",
     confirmPassword: "",
@@ -47,13 +54,97 @@ export default function AuthPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSignUp && formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+    const email = formData.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMessage("Enter a valid email address.");
       return;
     }
-    console.log(isSignUp ? "Sign Up Payload:" : "Sign In Payload:", formData);
+    if (isSignUp && !formData.fullName.trim()) {
+      setErrorMessage("Enter your full name.");
+      return;
+    }
+    if (formData.password.length < 8 || formData.password.length > 128) {
+      setErrorMessage("Password must be between 8 and 128 characters.");
+      return;
+    }
+    if (isSignUp && formData.password !== formData.confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      let response;
+      if (isSignUp) {
+        response = await fetch(`${API_URL}/api/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Request-ID": crypto.randomUUID(),
+          },
+          credentials: "include",
+          signal: AbortSignal.timeout(10000),
+          body: JSON.stringify({
+          full_name: formData.fullName.trim(),
+          email,
+          password: formData.password,
+          role: formData.role,
+            ...(formData.companyName.trim()
+              ? { company_name: formData.companyName.trim() }
+              : {}),
+          }),
+        });
+      } else {
+        const body = new URLSearchParams();
+        body.set("username", email);
+        body.set("password", formData.password);
+
+        response = await fetch(`${API_URL}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Request-ID": crypto.randomUUID(),
+          },
+          credentials: "include",
+          signal: AbortSignal.timeout(10000),
+          body,
+        });
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map((item) => item.msg).join(" ")
+          : data.detail;
+        throw new Error(detail || "Authentication failed. Please try again.");
+      }
+
+      if (isSignUp) {
+        setSuccessMessage("Account created. Sign in to continue.");
+        setIsSignUp(false);
+        setFormData((current) => ({
+          ...current,
+          password: "",
+          confirmPassword: "",
+        }));
+      } else {
+        setAccessToken(data.access_token);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof TypeError
+          ? "Unable to reach the server. Please try again."
+          : error.message,
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -221,16 +312,25 @@ export default function AuthPage() {
                   <div className="w-full h-px bg-gray-200" />
                 </div>
 
+                {errorMessage && (
+                  <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {errorMessage}
+                  </p>
+                )}
+                {successMessage && (
+                  <p role="status" className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
+                    {successMessage}
+                  </p>
+                )}
+
                 {/* Dynamic Form */}
                 <form onSubmit={handleSubmit}>
-                  {/* Full Name (Sign Up only) */}
+                  {/* Company Name (Sign Up only) */}
                   {isSignUp && (
+                    <>
                     <div className="mb-4">
-                      <label
-                        className="block mb-2 text-sm text-gray-900 font-semibold"
-                        htmlFor="fullName"
-                      >
-                        Full Name
+                      <label className="mb-2 block text-sm font-semibold text-gray-900" htmlFor="fullName">
+                        Full name
                       </label>
                       <input
                         id="fullName"
@@ -238,12 +338,43 @@ export default function AuthPage() {
                         required
                         placeholder="Jane Doe"
                         value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-orange-900 focus:outline-none"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label
+                        className="block mb-2 text-sm text-gray-900 font-semibold"
+                        htmlFor="companyName"
+                      >
+                        Company Name <span className="font-normal text-gray-500">(optional)</span>
+                      </label>
+                      <input
+                        id="companyName"
+                        type="text"
+                        placeholder="Acme Corporation"
+                        value={formData.companyName}
                         onChange={(e) =>
-                          setFormData({ ...formData, fullName: e.target.value })
+                          setFormData({ ...formData, companyName: e.target.value })
                         }
                         className="w-full py-3 px-4 text-sm text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:border-orange-900 focus:ring-1 focus:ring-orange-900 focus:outline-none transition-all"
                       />
                     </div>
+                    <div className="mb-4">
+                      <label className="mb-2 block text-sm font-semibold text-gray-900" htmlFor="role">
+                        Account role
+                      </label>
+                      <select
+                        id="role"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-orange-900 focus:outline-none"
+                      >
+                        <option value="MEMBER">Member</option>
+                        <option value="EXTERNAL_CLIENT">External client</option>
+                      </select>
+                    </div>
+                    </>
                   )}
 
                   {/* Email Field */}
@@ -257,6 +388,7 @@ export default function AuthPage() {
                     <input
                       id="email"
                       type="email"
+                      autoComplete="email"
                       required
                       placeholder="Johndev@mail.com"
                       value={formData.email}
@@ -289,6 +421,7 @@ export default function AuthPage() {
                       <input
                         id="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete={isSignUp ? "new-password" : "current-password"}
                         required
                         placeholder={
                           isSignUp
@@ -360,6 +493,7 @@ export default function AuthPage() {
                       <input
                         id="confirmPassword"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         required
                         placeholder="Repeat your password"
                         value={formData.confirmPassword}
@@ -393,7 +527,7 @@ export default function AuthPage() {
                         htmlFor="rememberMe"
                         className="ml-2 text-xs font-medium text-gray-700 cursor-pointer"
                       >
-                        Remember for 30 days
+                        Keep me signed in for this session
                       </label>
                     </div>
                   ) : (
@@ -437,11 +571,16 @@ export default function AuthPage() {
                   {/* Submit Button */}
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="relative group block w-full mb-6 py-3.5 px-5 text-center text-sm font-semibold text-white bg-orange-900 rounded-xl overflow-hidden shadow-lg hover:shadow-orange-900/20 transition-all cursor-pointer"
                   >
                     <div className="absolute inset-0 w-full h-full bg-gray-900 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
                     <span className="relative z-10">
-                      {isSignUp ? "Create Account" : "Login"}
+                      {isSubmitting
+                        ? "Please wait..."
+                        : isSignUp
+                          ? "Create Account"
+                          : "Login"}
                     </span>
                   </button>
 

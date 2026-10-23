@@ -14,17 +14,13 @@ const adminItems = [
     description: "Manage users, permissions, and role assignments.",
   },
   {
-    label: "Security & Auditing",
-    description: "Review audit events and configure security controls.",
-  },
-  {
     label: "Settings",
     description: "Manage administrative and workspace-wide settings.",
   },
 ];
 
-const AdminView = () => (
-  <RoleViewLayout items={adminItems} role="admin" />
+const AdminView = ({ user }) => (
+  <RoleViewLayout items={adminItems} role="admin" user={user} />
 );
 
 export default AdminView;

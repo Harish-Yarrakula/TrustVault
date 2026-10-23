@@ -1,5 +1,75 @@
 @import "tailwindcss";
 
+.workspace-shell {
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --text: #111827;
+  --muted: #6b7280;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.workspace-shell .panel,
+.workspace-shell .workspace-content .rounded-xl.border.bg-white,
+.workspace-shell .workspace-content .rounded-xl.border.border-gray-200 {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.workspace-shell .workspace-header {
+  background: var(--surface);
+}
+
+.workspace-shell.dark-mode {
+  --surface: #182033;
+  --surface-muted: #0f172a;
+  --text: #f8fafc;
+  --muted: #aab5c8;
+}
+
+.workspace-shell.dark-mode .text-gray-900,
+.workspace-shell.dark-mode .text-gray-800,
+.workspace-shell.dark-mode .text-gray-700 {
+  color: #f8fafc;
+}
+
+.workspace-shell.dark-mode .text-gray-600,
+.workspace-shell.dark-mode .text-gray-500 {
+  color: var(--muted);
+}
+
+.workspace-shell.dark-mode .border-gray-200,
+.workspace-shell.dark-mode .border-gray-300,
+.workspace-shell.dark-mode .border-gray-100 {
+  border-color: #334155;
+}
+
+.workspace-shell.dark-mode input,
+.workspace-shell.dark-mode select,
+.workspace-shell.dark-mode .bg-white,
+.workspace-shell.dark-mode .bg-gray-50 {
+  background-color: #111827;
+  color: #f8fafc;
+}
+
+.workspace-shell.dark-mode .hover\:bg-gray-50:hover,
+.workspace-shell.dark-mode .hover\:bg-gray-100:hover {
+  background-color: #263247;
+}
+
+.workspace-shell.dark-mode .bg-amber-50 {
+  background-color: #3b2f14;
+}
+
+.workspace-shell.dark-mode .ai-fab {
+  background-color: #ea580c;
+}
+
+@media (max-width: 640px) {
+  .workspace-content .overflow-x-auto {
+    margin-inline: -0.25rem;
+  }
+}
 
 @theme{
   --animate-movement: movement 3s ease-in-out infinite;
