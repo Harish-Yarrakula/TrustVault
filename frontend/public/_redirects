@@ -1,0 +1,3 @@
+/api/* https://trustvault.run.place/api/:splat 200
+/users/me https://trustvault.run.place/users/me 200
+/* /index.html 200

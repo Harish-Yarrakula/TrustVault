@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TrustVault role workflows, document access, security controls, and email hand-offs.">
+  <title>TrustVault | User workflows and email</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #201d3d;
+      --muted: #5f6275;
+      --line: #dfe2eb;
+      --paper: #fff;
+      --canvas: #f5f6fa;
+      --purple: #343064;
+      --orange: #f97316;
+      --green: #e6f6ee;
+      --amber: #fff4dc;
+      --blue: #eaf2ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header {
+      padding: 3.5rem max(1.25rem, calc((100vw - 1100px) / 2));
+      background: var(--purple);
+      color: white;
+    }
+    header p { max-width: 760px; color: #e5e3ff; }
+    header a { color: white; }
+    .doc-nav { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-top: 1.25rem; font-size: .95rem; }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { margin: 0 0 .75rem; font-size: clamp(2rem, 5vw, 3.3rem); }
+    h2 { margin-top: 0; }
+    main { width: min(1100px, calc(100% - 2rem)); margin: 2rem auto 4rem; }
+    section, .card {
+      margin: 1.25rem 0;
+      padding: clamp(1.1rem, 3vw, 2rem);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--paper);
+      box-shadow: 0 8px 24px #201d3d0a;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .card { margin: 0; padding: 1.25rem; }
+    .role { display: inline-block; padding: .15rem .6rem; border-radius: 99px; background: #eeedfb; color: var(--purple); font-size: .85rem; font-weight: 700; }
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li { position: relative; margin: .7rem 0; padding: .8rem .9rem .8rem 3.3rem; border: 1px solid var(--line); border-radius: .7rem; background: #fff; }
+    .steps li::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; left: .85rem; top: .72rem;
+      display: grid; width: 1.7rem; height: 1.7rem; place-items: center;
+      border-radius: 50%; background: var(--purple); color: white; font-weight: 700;
+    }
+    .note { padding: 1rem 1.1rem; border-left: 4px solid var(--orange); border-radius: .5rem; background: var(--amber); }
+    .good { padding: 1rem 1.1rem; border-left: 4px solid #1c8c55; border-radius: .5rem; background: var(--green); }
+    .info { padding: 1rem 1.1rem; border-left: 4px solid #3173ce; border-radius: .5rem; background: var(--blue); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .75rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--purple); }
+    code { padding: .1rem .3rem; border-radius: .25rem; background: #f0f1f5; }
+    footer { padding: 1rem; color: var(--muted); text-align: center; }
+    a { color: #35317c; }
+    @media (max-width: 640px) {
+      table, tbody, tr, td { display: block; }
+      thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+      tr { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+      td { border: 0; padding: .35rem .5rem; }
+      td::before { content: attr(data-label) ": "; font-weight: 700; color: var(--purple); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TrustVault workflows</h1>
+    <p>A secure document workspace with per-document grants, expiring external access, and an auditable trail. This guide maps what each user does and what TrustVault sends by email.</p>
+    <nav class="doc-nav" aria-label="Project documentation">
+      <a href="architecture.html">Architecture and data flows</a>
+    </nav>
+  </header>
+  <main>
+    <section aria-labelledby="roles">
+      <h2 id="roles">Roles and access model</h2>
+      <div class="grid">
+        <article class="card">
+          <span class="role">ADMIN</span>
+          <h3>Workspace administrator</h3>
+          <p>Invites and manages tenant members, reviews analytics and audit history, and manages document permissions. Administrator role alone does not grant access to every file's contents. Admin MFA is required.</p>
+        </article>
+        <article class="card">
+          <span class="role">MEMBER</span>
+          <h3>Document owner or colleague</h3>
+          <p>A member owns documents they upload. Owners manage their files and grants. Other members need an active named READ or WRITE grant on that particular document.</p>
+        </article>
+        <article class="card">
+          <span class="role">EXTERNAL_CLIENT</span>
+          <h3>Invited external recipient</h3>
+          <p>Accepts an invitation, sets a password, signs in, and can read documents explicitly granted to them. External clients are read-only.</p>
+        </article>
+        <article class="card">
+          <span class="role">LINK RECIPIENT</span>
+          <h3>Secure-link recipient</h3>
+          <p>Uses an expiring, optionally passcode- and OTP-protected link to download a shared document. This is distinct from an authenticated company-member grant.</p>
+        </article>
+      </div>
+      <p class="info"><strong>Important:</strong> category folders organize the workspace but do not inherit permissions. Authorization is checked by the API for each document operation.</p>
+    </section>
+
+    <section aria-labelledby="account-setup">
+      <h2 id="account-setup">Account setup for local testing</h2>
+      <table>
+        <thead><tr><th>Account</th><th>How to create it</th><th>Testing note</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Account">Personal account</td><td data-label="How to create it">Use sign-up with an email domain the backend recognizes as personal.</td><td data-label="Testing note">Self-registration creates a personal tenant; it does not join a corporate workspace.</td></tr>
+          <tr><td data-label="Account">Corporate administrator</td><td data-label="How to create it">Run <code>backend/bootstrap_admin.py</code> against a local database and enter a corporate-domain email.</td><td data-label="Testing note">Set a local-only password and enroll in TOTP MFA at sign-in.</td></tr>
+          <tr><td data-label="Account">Company member</td><td data-label="How to create it">An administrator sends an invitation; the member activates the account from email.</td><td data-label="Testing note">Use a test mailbox or a fake email service for local tests.</td></tr>
+          <tr><td data-label="Account">External client</td><td data-label="How to create it">A document owner invites the recipient and grants access to a specific document.</td><td data-label="Testing note">Verify READ works and WRITE is rejected.</td></tr>
+        </tbody>
+      </table>
+      <p class="note"><strong>No demo credentials are provisioned.</strong> The account fields in the project README are placeholders, not working logins. Never commit test passwords or use production accounts for local validation.</p>
+    </section>
+
+    <section aria-labelledby="member-flow">
+      <h2 id="member-flow">Member uploads and grants access</h2>
+      <ol class="steps">
+        <li><strong>Sign in.</strong> An administrator must first create/invite the corporate member. Admin accounts enroll in TOTP MFA.</li>
+        <li><strong>Upload a document.</strong> Select a PDF, PNG, or JPEG and choose a category. The browser sends bytes to private object storage using a short-lived presigned upload request.</li>
+        <li><strong>Server verifies the upload.</strong> TrustVault checks size, SHA-256, actual file signature, declared MIME type, and ClamAV scan. Failed checks or unavailable scanning prevent the document from being served.</li>
+        <li><strong>Choose recipients.</strong> Grant an existing company member READ or WRITE access to this document, or invite an external recipient for READ access.</li>
+        <li><strong>Recipient accesses only the grant.</strong> The API checks the current account and document grant before returning bytes. Revocation or expiry blocks future API reads.</li>
+        <li><strong>Review activity.</strong> The owner and administrator can see relevant notifications; administrators can review audit history and workspace analytics.</li>
+      </ol>
+      <div class="good"><strong>Result:</strong> access applies to an individual document, not every file in its category folder. A removed grant does not invalidate a copy already downloaded by the recipient.</div>
+    </section>
+
+    <section aria-labelledby="admin-flow">
+      <h2 id="admin-flow">Administrator invites a company member</h2>
+      <ol class="steps">
+        <li>Open role/settings management and enter the member's email address.</li>
+        <li>TrustVault sends an invitation email with an acceptance link. The default invitation lifetime is seven days.</li>
+        <li>The invitee opens the link and activates their account by setting a password.</li>
+        <li>The administrator manages roles, checks dashboard activity, and reviews audit records. Grant document access separately; admin membership does not automatically grant file-content access.</li>
+      </ol>
+      <p><strong>Email subject:</strong> “You have been invited to TrustVault”. Delivery uses Amazon SES and requires a configured sender, region, and authorized recipient in the SES account.</p>
+    </section>
+
+    <section aria-labelledby="external-flow">
+      <h2 id="external-flow">Owner invites an external client to one document</h2>
+      <ol class="steps">
+        <li>From document access management, choose “Invite by email” and enter the recipient's email.</li>
+        <li>Choose READ. The backend rejects WRITE for an external-client role. The invitation and associated grant default to a seven-day expiry.</li>
+        <li>TrustVault sends the invitation email. The link leads to the acceptance page; the recipient sets a password and activates the account.</li>
+        <li>The external client signs in and sees only their explicitly granted document. The owner can revoke the grant; administrators can revoke the guest account.</li>
+      </ol>
+      <p><strong>Email subject:</strong> “You have been invited to TrustVault”. If SES delivery fails, the operation reports failure instead of presenting an invitation as successfully sent.</p>
+    </section>
+
+    <section aria-labelledby="share-flow">
+      <h2 id="share-flow">Owner creates a secure share link</h2>
+      <ol class="steps">
+        <li>Open Share for a document you own. Choose expiry; optionally enter a recipient email and passcode. Email OTP requires a recipient email.</li>
+        <li>TrustVault creates a random token and stores its hash, not the raw token. Link expiry and maximum download count are enforced by the backend.</li>
+        <li>Send the copied link only to the intended recipient. A link is a bearer credential: anyone who obtains it may attempt to use it until it expires or is revoked.</li>
+        <li>If a passcode is set, the recipient must enter it. If OTP is required, the recipient enters the six-digit code from email before downloading.</li>
+        <li>The owner can revoke the share link. Subsequent server requests using that link are denied.</li>
+      </ol>
+      <p><strong>Email subjects:</strong> “A TrustVault document was shared with you” and, when OTP is enabled, “Your TrustVault verification code”. Each OTP is valid for ten minutes; five failed attempts trigger a temporary lock. A recipient can request up to three replacement codes per ten minutes. Both emails go to the named recipient.</p>
+      <p>Do not forward the OTP or share URL to support/chat. If a link is exposed, revoke it and create a new one.</p>
+    </section>
+
+    <section aria-labelledby="features">
+      <h2 id="features">Feature map</h2>
+      <table>
+        <thead><tr><th>Feature</th><th>Who uses it</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Feature">Document library</td><td data-label="Who uses it">Members, owners, invited readers</td><td data-label="What happens">Browse authorized documents, categories, and available document metadata.</td></tr>
+          <tr><td data-label="Feature">Search and filters</td><td data-label="Who uses it">Library users</td><td data-label="What happens">Client-side filtering over already loaded documents. Current owner filter matches owner ID; this is not a server-side global search.</td></tr>
+          <tr><td data-label="Feature">Upload validation</td><td data-label="Who uses it">Authorized members</td><td data-label="What happens">PDF/PNG/JPEG signature, size, checksum, MIME declaration, and malware checks run before serving.</td></tr>
+          <tr><td data-label="Feature">Permissions</td><td data-label="Who uses it">Document owner / authorized admin</td><td data-label="What happens">Grant or revoke per-user READ/WRITE access for one document. External clients are READ-only.</td></tr>
+          <tr><td data-label="Feature">AI access suggestions</td><td data-label="Who uses it">Admin/owner review workflow</td><td data-label="What happens">Suggestions are recorded but cannot widen access until a human owner approves.</td></tr>
+          <tr><td data-label="Feature">Audit and alerts</td><td data-label="Who uses it">Administrator</td><td data-label="What happens">Review events, analytics, notifications, and audit-chain/archive verification.</td></tr>
+          <tr><td data-label="Feature">Notifications</td><td data-label="Who uses it">Users receiving a grant/update</td><td data-label="What happens">Server-persisted notices can be marked read.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="security">
+      <h2 id="security">Security and audit expectations</h2>
+      <ul>
+        <li>Every document operation must be authorized server-side; changing an ID or calling an endpoint directly must not bypass the check.</li>
+        <li>Revocation prevents future server-mediated reads. It cannot erase copies already downloaded.</li>
+        <li>Audit events are hash chained and archived to Object Lock storage in production. Administrators can run integrity verification.</li>
+        <li>Known audit limitation: cookie-only or invalid-identity failures are not comprehensively attributable.</li>
+        <li>Keep database, S3, SES, signing-key, MFA, and invitation secrets out of screenshots, browser shares, logs, and documentation.</li>
+      </ul>
+      <p>For system configuration, test commands, known limitations, and deployment notes, consult the repository README and threat model.</p>
+    </section>
+  </main>
+  <footer>TrustVault workflow documentation · Review alongside the deployed environment and current code.</footer>
+</body>
+</html>

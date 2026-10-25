@@ -1,5 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom';
+import logo from './assets/logo.png';
+import starBackground from './assets/headers/star-background-header.png';
+import robotHand from './assets/headers/robot-hand-header.png';
+import industriesImage from './assets/industries/Gemini_Generated_Image_i3w7pli3w7pli3w7.png';
 const App = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -11,7 +15,7 @@ const App = () => {
           {/* Star Background Pattern */}
           <img
             className="absolute top-0 right-0 w-52 md:w-auto z-0 opacity-80"
-            src="src\assets\headers\star-background-header.png"
+            src={starBackground}
             alt="Star background"
           />
 
@@ -19,7 +23,7 @@ const App = () => {
           {/* Floating Robot Hand */}
           <img
             className="absolute top-0 right-0 -mr-10 sm:-mr-0 mt-64 md:mt-96 lg:mt-72 xl:mt-80 h-32 md:h-60 lg:h-80 z-10 animate-movement"
-            src="src\assets\headers\robot-hand-header.png"
+            src={robotHand}
             alt="Robot hand"
           />
 
@@ -34,7 +38,7 @@ const App = () => {
             <div className="flex items-center justify-between">
               {/* Logo */}
               <a href="#" className="flex items-center space-x-2 text-xl font-bold tracking-tight text-gray-900">
-                  <img src="src/assets/logo.png" alt="TrustVaultLogo" className="flex items-center justify-center w-8 h-8 rounded-lg"/>
+                  <img src={logo} alt="TrustVaultLogo" className="flex items-center justify-center w-8 h-8 rounded-lg"/>
                 <span className="text-xl font-black">TrustVault</span>
               </a>
 
@@ -99,12 +103,12 @@ const App = () => {
 
             {/* Primary CTA Button */}
             <a
-              href="#"
+              href="/auth/login"
               className="relative group inline-flex items-center justify-center w-full sm:w-auto py-4 px-8 mb-20 text-white font-semibold rounded-md bg-orange-900 overflow-hidden shadow-lg hover:shadow-orange-900/20 transition-shadow"
             >
               <div className="absolute inset-0 w-full h-full bg-gray-900 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
               <div className="relative flex items-center justify-center space-x-3">
-                <span>Meet The Expert</span>
+                <span>Signup Now</span>
                 <svg className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" viewBox="0 0 8 12" fill="none">
                   <path d="M1.5 1.5L6.5 6L1.5 10.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -119,7 +123,7 @@ const App = () => {
                   Secure Sensitive Workflows across different Industries
                 </span>
                 <div className="flex flex-wrap items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all w-100">
-                  <img src="src\assets\industries\Gemini_Generated_Image_i3w7pli3w7pli3w7.png" alt="Industries" />
+                  <img src={industriesImage} alt="Industries" />
                 </div>
               </div>
 

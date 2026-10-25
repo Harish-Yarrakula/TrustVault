@@ -11,7 +11,8 @@ import RoleSettings from "../../components/RoleSettings";
 import SettingsPanel from "../../components/SettingsPanel";
 import UploadPanel from "../../components/UploadPanel";
 import PermissionManager from "../../components/PermissionManager";
-import { api, setAccessToken } from "../../api";
+import WorkspaceUpdates from "../../components/WorkspaceUpdates";
+import { api, saveDownload, setAccessToken } from "../../api";
 import { evaluateAccessRules } from "../../utils/accessRules";
 
 const workspaceItems = [
@@ -58,18 +59,8 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
   const [hasNewMember, setHasNewMember] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [uploadedDocument, setUploadedDocument] = useState(null);
-  const [seenNotificationIds, setSeenNotificationIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("trustvault_seen_notifications") || "[]");
-    } catch {
-      return [];
-    }
-  });
-  const securityAlerts = notifications.filter((event) =>
-    ["USER_LOGIN_FAILED", "EMAIL_FAILED", "ACCESS_DENIED"].includes(event.action),
-  );
-  const unseenSecurityAlerts = securityAlerts.filter((event) => !event.read_at && !seenNotificationIds.includes(event.id));
-  const securityAlertCount = unseenSecurityAlerts.length;
+  const unreadNotifications = notifications.filter((notification) => !notification.read_at);
+  const securityAlertCount = unreadNotifications.length;
 
   const selectItem = (item) => {
     setSelectedItem(item);
@@ -88,9 +79,7 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
   };
 
   const markNotificationsSeen = () => {
-    const ids = securityAlerts.filter((event) => !event.read_at).map((event) => event.id);
-    setSeenNotificationIds(ids);
-    localStorage.setItem("trustvault_seen_notifications", JSON.stringify(ids));
+    const ids = unreadNotifications.map((notification) => notification.id);
     if (ids.length) {
       api.markNotificationsRead(ids).catch((error) => setLoadError(error.message));
     }
@@ -100,29 +89,55 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
     setHasNewMember(false);
   };
 
+  const markNotificationRead = (notificationId) => {
+    api.markNotificationsRead([notificationId])
+      .then(() => setNotifications((current) => current.map((notification) =>
+        notification.id === notificationId
+          ? { ...notification, read_at: new Date().toISOString() }
+          : notification,
+      )))
+      .catch((error) => setLoadError(error.message));
+  };
+
   useEffect(() => {
     Promise.all([
       api.documents(),
       api.sharedDocuments(),
       api.members(),
-      role === "admin" ? api.notifications() : Promise.resolve([]),
+      api.notifications(),
     ])
       .then(([allDocuments, grantedDocuments, companyMembers, notificationRows]) => {
-        setDocuments(role === "admin" ? allDocuments : allDocuments.filter((document) => document.owner_id === user?.id));
+        setDocuments(allDocuments);
         setSharedDocuments(grantedDocuments);
         setMembers(companyMembers);
         setNotifications(notificationRows);
+        if (role === "admin") {
+          const previousCount = Number(localStorage.getItem("trustvault_member_count") || 0);
+          setMemberCount(companyMembers.length);
+          setHasNewMember(previousCount > 0 && companyMembers.length > previousCount);
+          localStorage.setItem("trustvault_member_count", String(companyMembers.length));
+        }
       })
       .catch((error) => setLoadError(error.message));
-    if (role === "admin") {
-      api.members().then((companyMembers) => {
-        const previousCount = Number(localStorage.getItem("trustvault_member_count") || 0);
-        setMemberCount(companyMembers.length);
-        setHasNewMember(previousCount > 0 && companyMembers.length > previousCount);
-        localStorage.setItem("trustvault_member_count", String(companyMembers.length));
-      }).catch((error) => setLoadError(error.message));
-    }
   }, [role, user?.id]);
+
+  useEffect(() => {
+    let active = true;
+    const refreshNotifications = () => {
+      api.notifications()
+        .then((rows) => {
+          if (active) setNotifications(rows);
+        })
+        .catch((error) => {
+          if (active) setLoadError(error.message);
+        });
+    };
+    const intervalId = window.setInterval(refreshNotifications, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const handleUpload = async ({ file, category, permissionEmails = [], permissionLevel = "READ" }) => {
     const document = await api.uploadDocument(file, category);
@@ -199,6 +214,38 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
     if (selectedItem.label === "Settings") {
       return <SettingsPanel user={user} />;
     }
+    if (selectedItem.label === "Dashboard") {
+      return (
+        <div className="mx-auto w-full max-w-6xl space-y-6">
+          <WorkspaceUpdates
+            notifications={notifications}
+            documents={[...documents, ...sharedDocuments]}
+            onOpenDocument={(document) => {
+              const documentsItem = items.find((item) => item.label === "Documents");
+              if (documentsItem) setSelectedItem(documentsItem);
+              setSelectedDocument(document);
+            }}
+            onMarkRead={markNotificationRead}
+          />
+          <section className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900">Company documents</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Browse the company folder and its category folders.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const documentsItem = items.find((item) => item.label === "Documents");
+                if (documentsItem) selectItem(documentsItem);
+              }}
+              className="mt-4 rounded-lg bg-[#171440] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Open company folder
+            </button>
+          </section>
+        </div>
+      );
+    }
 
     if (selectedDocument) {
       const owner = members.find((member) => member.id === selectedDocument.owner_id) ||
@@ -213,16 +260,15 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
       );
     }
 
-    if (selectedItem.label === "Documents" || selectedItem.label === "Dashboard") {
+    if (selectedItem.label === "Documents") {
       return (
         <DocumentLibrary
           documents={documents}
+          rootName={user?.company_name || "Company workspace"}
           error={loadError}
           onDownload={async (document) => {
-            const { blob } = await api.downloadContent(document.id);
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank", "noopener,noreferrer");
-            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            const { blob, filename } = await api.downloadContent(document.id);
+            saveDownload(blob, filename);
           }}
           onSelect={setSelectedDocument}
           canShare={(document) => document.owner_id === user?.id}
@@ -250,12 +296,11 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
       return (
         <DocumentLibrary
           documents={sharedDocuments}
+          rootName="Shared with me"
           onSelect={setSelectedDocument}
           onDownload={async (document) => {
-            const { blob } = await api.downloadContent(document.id);
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank", "noopener,noreferrer");
-            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            const { blob, filename } = await api.downloadContent(document.id);
+            saveDownload(blob, filename);
           }}
           error={loadError}
         />
@@ -270,10 +315,10 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
   };
 
   return (
-    <section className={`workspace-shell relative min-h-screen overflow-hidden font-sans ${darkMode ? "dark-mode" : ""}`}>
+    <section className={`workspace-shell relative min-h-screen font-sans ${darkMode ? "dark-mode" : ""}`}>
       <div className="flex min-h-screen w-full">
-        <aside className={`workspace-sidebar fixed inset-y-0 left-0 z-30 flex w-72 max-w-[85vw] flex-col justify-between bg-[#171440] p-5 text-white transition-transform lg:static lg:w-[min(22vw,18rem)] lg:max-w-none ${mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
-          <div>
+        <aside className={`workspace-sidebar fixed inset-y-0 left-0 z-30 flex w-72 max-w-[85vw] flex-none flex-col overflow-y-auto bg-[#171440] p-5 text-white transition-transform lg:inset-y-0 lg:left-0 lg:h-screen lg:w-72 lg:max-w-none lg:shrink-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+          <div className="flex-none">
             <Link
               to="/dashboard"
               className="flex items-center space-x-2 text-xl font-bold tracking-tight"
@@ -286,7 +331,7 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
               <span className="text-xl text-white">TrustVault</span>
             </Link>
           </div>
-          <nav aria-label={`${role} navigation`} className="flex flex-col gap-5">
+          <nav aria-label={`${role} navigation`} className="my-8 flex flex-none flex-col gap-5">
             {items.map((item) => (
               <button
                 key={item.label}
@@ -303,12 +348,12 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
               </button>
             ))}
           </nav>
-          <button type="button" onClick={handleLogout} className="text-left transition-opacity hover:opacity-80">
+          <button type="button" onClick={handleLogout} className="mt-auto flex-none text-left transition-opacity hover:opacity-80">
             LogOut
           </button>
         </aside>
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 lg:ml-72">
           <div className="workspace-header flex items-center justify-between border-b border-gray-200 px-4 py-3 sm:px-8">
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setMobileNavOpen(true)} className="rounded-lg border border-gray-200 p-2 lg:hidden" aria-label="Open navigation">
@@ -317,8 +362,23 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
               <h1 className="text-2xl font-bold sm:text-3xl">{selectedItem.label}</h1>
             </div>
             <section className="m-1 flex items-center">
-              <button type="button" onClick={toggleDarkMode} className="mr-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold" aria-label="Toggle dark mode">
-                {darkMode ? "Light" : "Dark"}
+              <button
+                type="button"
+                onClick={toggleDarkMode}
+                className="mr-2 inline-flex size-9 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? (
+                  <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+                  </svg>
+                ) : (
+                  <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
+                  </svg>
+                )}
               </button>
               <button
                 type="button"
@@ -371,7 +431,7 @@ export const RoleViewLayout = ({ items = workspaceItems, role = "workspace", use
           {notificationsOpen && (
             <div className="panel absolute right-5 top-16 z-10 rounded-lg border border-gray-200 p-4 text-sm shadow-lg">
               {securityAlertCount > 0
-                ? `${securityAlertCount} new security alert(s) need review.`
+                ? `${securityAlertCount} new workspace update(s).`
                 : role === "admin" && hasNewMember
                   ? `A new company member joined your workspace. ${memberCount} total members.`
                   : "You are all caught up."}

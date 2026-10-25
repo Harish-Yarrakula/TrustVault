@@ -15,11 +15,16 @@ const PermissionManager = ({ document }) => {
     Promise.all([api.permissions(document.id), api.members()])
       .then(([permissions, companyMembers]) => {
         setGrants(
-          permissions.map((permission) => ({
-            ...permission,
-            email: companyMembers.find((member) => member.id === permission.user_id)?.email ||
-              permission.user_id,
-          })),
+          permissions
+            .filter((permission) =>
+              !permission.revoked_at &&
+              (!permission.expires_at || new Date(permission.expires_at).getTime() > Date.now()),
+            )
+            .map((permission) => ({
+              ...permission,
+              email: companyMembers.find((member) => member.id === permission.user_id)?.email ||
+                permission.user_id,
+            })),
         );
         setMembers(companyMembers);
       })

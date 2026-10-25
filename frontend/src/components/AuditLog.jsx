@@ -5,7 +5,6 @@ import { auditActionLabel, auditDetails, auditIpLabel } from "../utils/auditPres
 const AuditLog = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
-  const [integrity, setIntegrity] = useState(null);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
@@ -28,24 +27,10 @@ const AuditLog = () => {
     }
   };
 
-  const verify = async () => {
-    try {
-      setIntegrity(await api.verifyAudit());
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
-
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="text-xl font-semibold text-gray-900">Activity and audit log</h2>
       <p className="mb-5 text-sm text-gray-500">Security and workspace activity in plain language.</p>
-      <button type="button" onClick={verify} className="mb-4 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold">
-        Verify audit integrity
-      </button>
-      {integrity && <p role="status" className={`mb-4 text-sm ${integrity.valid ? "text-green-700" : "text-red-700"}`}>
-        {integrity.valid ? `Integrity verified across ${integrity.checked} events.` : `Integrity check failed: ${integrity.reason}.`}
-      </p>}
       {error && <p role="alert" className="mb-4 text-sm text-red-600">{error}</p>}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[650px] text-left text-sm">

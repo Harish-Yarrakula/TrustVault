@@ -34,7 +34,16 @@
 }
 
 .workspace-shell.dark-mode .text-gray-600,
-.workspace-shell.dark-mode .text-gray-500 {
+.workspace-shell.dark-mode .text-gray-500,
+.workspace-shell.dark-mode .text-slate-400 {
+  color: #cbd5e1;
+}
+
+.workspace-shell.dark-mode .text-slate-500 {
+  color: #aebbd0;
+}
+
+.workspace-shell.dark-mode .text-gray-400 {
   color: var(--muted);
 }
 
@@ -46,10 +55,17 @@
 
 .workspace-shell.dark-mode input,
 .workspace-shell.dark-mode select,
+.workspace-shell.dark-mode textarea,
 .workspace-shell.dark-mode .bg-white,
 .workspace-shell.dark-mode .bg-gray-50 {
   background-color: #111827;
   color: #f8fafc;
+}
+
+.workspace-shell.dark-mode input::placeholder,
+.workspace-shell.dark-mode textarea::placeholder {
+  color: #aebbd0;
+  opacity: 1;
 }
 
 .workspace-shell.dark-mode .hover\:bg-gray-50:hover,
@@ -57,8 +73,33 @@
   background-color: #263247;
 }
 
-.workspace-shell.dark-mode .bg-amber-50 {
-  background-color: #3b2f14;
+.workspace-shell.dark-mode .bg-indigo-50,
+.workspace-shell.dark-mode .bg-blue-50,
+.workspace-shell.dark-mode .bg-emerald-50,
+.workspace-shell.dark-mode .bg-green-50,
+.workspace-shell.dark-mode .bg-red-50,
+.workspace-shell.dark-mode .bg-orange-50,
+.workspace-shell.dark-mode .bg-amber-50,
+.workspace-shell.dark-mode .bg-yellow-50,
+.workspace-shell.dark-mode .bg-purple-50 {
+  background-color: #263247;
+}
+
+.workspace-shell.dark-mode .text-indigo-700,
+.workspace-shell.dark-mode .text-indigo-800,
+.workspace-shell.dark-mode .text-blue-700,
+.workspace-shell.dark-mode .text-blue-800,
+.workspace-shell.dark-mode .text-emerald-700,
+.workspace-shell.dark-mode .text-green-700 {
+  color: #a7f3d0;
+}
+
+.workspace-shell.dark-mode .text-red-700,
+.workspace-shell.dark-mode .text-red-800,
+.workspace-shell.dark-mode .text-orange-700,
+.workspace-shell.dark-mode .text-amber-700,
+.workspace-shell.dark-mode .text-yellow-700 {
+  color: #fed7aa;
 }
 
 .workspace-shell.dark-mode .ai-fab {

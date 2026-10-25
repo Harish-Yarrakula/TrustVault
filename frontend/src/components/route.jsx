@@ -5,6 +5,7 @@ import User from '../pages/User';
 import AuthPage from '../pages/AuthPage';
 import AcceptInvitation from '../pages/AcceptInvitation';
 import SharePage from '../pages/SharePage';
+import MfaSetup from '../pages/MfaSetup';
 const router = createBrowserRouter([{
     path:"/",
     element: <RootLayout/>,
@@ -22,13 +23,17 @@ const router = createBrowserRouter([{
         element:<AuthPage/>
     },
     {
+        path:"auth/mfa-setup",
+        element:<MfaSetup/>
+    },
+    {
         path:"guest/accept",
         element:<AcceptInvitation/>
     },
     {
-        path:"share/:token",
+        path:"share",
         element:<SharePage/>
-    }
+    },
     ]
 }]);
 

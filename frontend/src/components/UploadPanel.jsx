@@ -63,7 +63,7 @@ const UploadPanel = ({ onUpload }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-6"
+      className="mx-auto mt-6 w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-6"
     >
       <h2 className="text-xl font-semibold text-gray-900">Upload a document</h2>
       <p className="mt-1 text-sm text-gray-500">
@@ -91,6 +91,7 @@ const UploadPanel = ({ onUpload }) => {
             <option value="Finance">Finance</option>
             <option value="Reports">Reports</option>
             <option value="Policies">Policies</option>
+            <option value="Other">Other</option>
           </select>
         </label>
         <label className="text-sm font-medium text-gray-700 sm:col-span-2">

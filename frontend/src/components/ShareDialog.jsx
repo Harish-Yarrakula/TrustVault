@@ -22,13 +22,13 @@ const ShareDialog = ({ document, onClose }) => {
         ...(passcode ? { passcode } : {}),
         expires_at: expiresAt ? new Date(expiresAt).toISOString() : new Date(Date.now() + 7 * 86400000).toISOString(),
       });
-      const shareUrl = new URL(result.url, window.location.origin);
-      const token = shareUrl.pathname.split("/").filter(Boolean).pop();
-      if (!token) throw new Error("The share link could not be created.");
-      const absoluteLink = `${window.location.origin}/share/${token}`;
-      setLink(absoluteLink);
+      setLink(new URL(result.url, window.location.origin).toString());
       if (recipientEmail) {
-        setMessage(`Share link created for ${recipientEmail}.`);
+        setMessage(
+          requireOtp
+            ? `Share link and verification code sent to ${recipientEmail}.`
+            : `Share link sent to ${recipientEmail}.`,
+        );
       } else {
         setMessage("Share link created. Copy it below.");
       }
@@ -56,7 +56,7 @@ const ShareDialog = ({ document, onClose }) => {
         </div>
         <label className="mt-5 block text-sm font-medium text-gray-700">
           Recipient email (optional)
-          <input type="email" value={recipientEmail} onChange={(event) => setRecipientEmail(event.target.value)} placeholder="client@example.com" className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2" />
+          <input type="email" required={requireOtp} value={recipientEmail} onChange={(event) => setRecipientEmail(event.target.value)} placeholder="client@example.com" className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2" />
         </label>
         <label className="mt-4 block text-sm font-medium text-gray-700">
           Link expires
@@ -66,6 +66,11 @@ const ShareDialog = ({ document, onClose }) => {
           <input type="checkbox" checked={requireOtp} onChange={(event) => setRequireOtp(event.target.checked)} />
           Require email OTP before download
         </label>
+        {requireOtp && (
+          <p className="mt-1 text-xs text-gray-500">
+            Enter a recipient email; TrustVault sends the link and code in separate emails.
+          </p>
+        )}
         <label className="mt-4 block text-sm font-medium text-gray-700">
           Passcode (optional)
           <input type="password" minLength={6} value={passcode} onChange={(event) => setPasscode(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2" />

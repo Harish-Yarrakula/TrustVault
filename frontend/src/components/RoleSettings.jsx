@@ -3,6 +3,8 @@ import { api } from "../api";
 
 const RoleSettings = () => {
   const [users, setUsers] = useState([]);
+  const [email, setEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
 
@@ -21,6 +23,23 @@ const RoleSettings = () => {
     }
   };
 
+  const inviteMember = async (event) => {
+    event.preventDefault();
+    setInviting(true);
+    setError("");
+    setSaved("");
+    try {
+      await api.inviteCompanyMember(email.trim());
+      setSaved(`An invitation was sent to ${email.trim()}.`);
+      setEmail("");
+      setUsers(await api.members());
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setInviting(false);
+    }
+  };
+
   return (
     <div className="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-6">
       <h2 className="text-xl font-semibold text-gray-900">Users and roles</h2>
@@ -30,6 +49,25 @@ const RoleSettings = () => {
       </p>
       {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
       {saved && <p role="status" className="mt-3 text-sm text-green-700">{saved}</p>}
+      <form onSubmit={inviteMember} className="mt-5 flex flex-wrap gap-3">
+        <label className="sr-only" htmlFor="company-member-email">Member email</label>
+        <input
+          id="company-member-email"
+          type="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="colleague@company.com"
+          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={inviting}
+          className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {inviting ? "Sending..." : "Invite member"}
+        </button>
+      </form>
       <div className="mt-5 divide-y divide-gray-100">
         {users.map((user) => (
           <div

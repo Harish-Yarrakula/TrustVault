@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual guide to TrustVault's architecture and document workflows.">
+  <title>TrustVault | Architecture and workflows</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #201d3d;
+      --muted: #5f6275;
+      --line: #dfe2eb;
+      --paper: #fff;
+      --canvas: #f5f6fa;
+      --purple: #343064;
+      --blue: #eaf2ff;
+      --green: #e6f6ee;
+      --amber: #fff4dc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header {
+      padding: 3.5rem max(1.25rem, calc((100vw - 1120px) / 2));
+      background: var(--purple);
+      color: white;
+    }
+    header p { max-width: 760px; color: #e5e3ff; }
+    header a { color: white; }
+    .doc-nav { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-top: 1.25rem; font-size: .95rem; }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { margin: 0 0 .75rem; font-size: clamp(2rem, 5vw, 3.3rem); }
+    h2 { margin-top: 0; }
+    main { width: min(1120px, calc(100% - 2rem)); margin: 2rem auto 4rem; }
+    section, .card {
+      margin: 1.25rem 0;
+      padding: clamp(1.1rem, 3vw, 2rem);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--paper);
+      box-shadow: 0 8px 24px #201d3d0a;
+    }
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: stretch;
+    }
+    .card { margin: 0; padding: 1.25rem; }
+    .card h3 { margin: .25rem 0 .5rem; }
+    .card p { margin: .4rem 0; color: var(--muted); }
+    .card ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .browser { border-top: 5px solid #3173ce; }
+    .api { border-top: 5px solid var(--purple); }
+    .data { border-top: 5px solid #1c8c55; }
+    .external { border-top: 5px solid #d97706; }
+    .arrow {
+      display: flex;
+      min-height: 3rem;
+      align-items: center;
+      justify-content: center;
+      color: var(--purple);
+      font-size: .9rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    .arrow span { padding: .2rem .7rem; border-radius: 99px; background: #eeedfb; }
+    .api-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: .75rem;
+      align-items: center;
+      margin: 1.2rem 0;
+    }
+    .step {
+      min-height: 7rem;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      background: #fff;
+    }
+    .step strong { display: block; margin-bottom: .35rem; color: var(--purple); }
+    .step small { color: var(--muted); font-size: .9rem; }
+    .note, .good, .info {
+      padding: 1rem 1.1rem;
+      border-left: 4px solid;
+      border-radius: .5rem;
+    }
+    .note { border-color: #d97706; background: var(--amber); }
+    .good { border-color: #1c8c55; background: var(--green); }
+    .info { border-color: #3173ce; background: var(--blue); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .75rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--purple); }
+    code { padding: .1rem .3rem; border-radius: .25rem; background: #f0f1f5; }
+    a { color: #35317c; }
+    footer { padding: 1rem; color: var(--muted); text-align: center; }
+    @media (max-width: 760px) {
+      .diagram { grid-template-columns: 1fr; }
+      .api-flow { grid-template-columns: 1fr; }
+      .arrow { min-height: 1.5rem; }
+      .api-flow .arrow { transform: rotate(90deg); }
+    }
+    @media (max-width: 640px) {
+      table, tbody, tr, td { display: block; }
+      thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+      tr { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+      td { border: 0; padding: .35rem .5rem; }
+      td::before { content: attr(data-label) ": "; font-weight: 700; color: var(--purple); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>How TrustVault works</h1>
+    <p>A visual guide to the browser, API, database, and private services—and how a document moves through them safely.</p>
+    <nav class="doc-nav" aria-label="Project documentation">
+      <a href="user-workflows.html">User workflows</a>
+    </nav>
+  </header>
+  <main>
+    <section aria-labelledby="overview">
+      <h2 id="overview">Architecture at a glance</h2>
+      <div class="diagram">
+        <article class="card browser">
+          <h3>1. Browser</h3>
+          <p>React and Vite app, published as static files.</p>
+          <ul>
+            <li>Shows authorized workspace features.</li>
+            <li>Sends API requests with the session cookie.</li>
+            <li>Uploads file bytes to storage using a short-lived form.</li>
+          </ul>
+        </article>
+        <article class="card api">
+          <h3>2. TrustVault API</h3>
+          <p>FastAPI backend behind HTTPS.</p>
+          <ul>
+            <li>Authenticates users and checks tenant membership.</li>
+            <li>Enforces document ownership, grants, expiry, and share status.</li>
+            <li>Verifies uploads before making documents available.</li>
+          </ul>
+        </article>
+        <article class="card data">
+          <h3>3. Data services</h3>
+          <p>Private services used by the backend.</p>
+          <ul>
+            <li>PostgreSQL stores users, grants, sessions, and audit events.</li>
+            <li>Private S3-compatible storage holds document bytes.</li>
+            <li>ClamAV scans uploads over a private network.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="arrow"><span>Browser ⇄ API: HTTPS requests; access checks happen on the server</span></div>
+      <div class="diagram">
+        <article class="card external">
+          <h3>Connected services</h3>
+          <p><strong>Amazon SES</strong> sends invitation and verification emails.</p>
+          <p><strong>Object Lock archive</strong> stores audit copies when production archive configuration is enabled.</p>
+        </article>
+        <article class="card">
+          <h3>Two separate deployments</h3>
+          <p>The frontend static site and backend service are built and deployed independently. The browser reaches the API through the configured HTTPS host or same-origin proxy.</p>
+        </article>
+        <article class="card">
+          <h3>Trust boundary</h3>
+          <p>The browser is not trusted to decide access. Hidden buttons and client-side filters are for usability only; the API remains authoritative.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="upload">
+      <h2 id="upload">Workflow: upload a document</h2>
+      <div class="api-flow" aria-label="Document upload sequence">
+        <div class="step"><strong>1. Create record</strong><small>Browser sends filename, size, type, and checksum to the API.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><strong>2. Get upload form</strong><small>API checks the user and returns short-lived storage instructions.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><strong>3. Upload and verify</strong><small>Browser sends bytes to private storage. API checks signature, size, checksum, and malware scan before marking the document ready.</small></div>
+      </div>
+      <p class="good"><strong>Why upload directly to storage?</strong> Large file bytes do not need to pass through the API server. The API still controls who can start an upload and whether the uploaded object becomes available.</p>
+    </section>
+
+    <section aria-labelledby="read">
+      <h2 id="read">Workflow: open a document</h2>
+      <div class="api-flow" aria-label="Document read sequence">
+        <div class="step"><strong>1. Request</strong><small>Browser asks the API for the document.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><strong>2. Authorize</strong><small>API checks the current user, tenant, ownership or active grant, and document state.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><strong>3. Return bytes</strong><small>Only after approval does the API read private storage and return the file.</small></div>
+      </div>
+      <p class="note"><strong>Key rule:</strong> a document ID, admin role, category, or visible UI control is not permission to read file bytes. The API checks access for each request.</p>
+    </section>
+
+    <section aria-labelledby="other-flows">
+      <h2 id="other-flows">Other important workflows</h2>
+      <table>
+        <thead><tr><th>Workflow</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Workflow">Named permission</td><td data-label="How it works">An owner grants one user READ or WRITE on one document. Expiry and revocation are checked by the API; category folders do not inherit grants.</td></tr>
+          <tr><td data-label="Workflow">External invitation</td><td data-label="How it works">The invitation is emailed through SES. The external client activates an account and receives READ-only access to specifically granted documents.</td></tr>
+          <tr><td data-label="Workflow">Share link</td><td data-label="How it works">The API checks expiry, revocation, limits, and configured passcode/OTP requirements. A share link is a bearer credential; send it only to its intended recipient.</td></tr>
+          <tr><td data-label="Workflow">Audit event</td><td data-label="How it works">The API records relevant activity in PostgreSQL's per-tenant audit chain. When configured, an immutable archive copy is written and verified.</td></tr>
+          <tr><td data-label="Workflow">AI access suggestion</td><td data-label="How it works">The system records a recommendation only. A human owner must approve before a permission is created.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="deployment">
+      <h2 id="deployment">Deployment and operations</h2>
+      <table>
+        <thead><tr><th>Part</th><th>Deployment responsibility</th><th>Important configuration</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Part">Frontend</td><td data-label="Deployment responsibility">Build and publish static assets to the frontend host.</td><td data-label="Important configuration"><code>VITE_API_URL</code>; optional <code>VITE_S3_UPLOAD_ORIGIN</code>.</td></tr>
+          <tr><td data-label="Part">Backend</td><td data-label="Deployment responsibility">Run the API behind a TLS reverse proxy. Do not expose the application port directly.</td><td data-label="Important configuration">PostgreSQL credentials, signing key, allowed hosts and origins, storage, scanner, and email configuration.</td></tr>
+          <tr><td data-label="Part">Private services</td><td data-label="Deployment responsibility">Keep document storage private; expose ClamAV only to the backend network.</td><td data-label="Important configuration">Least-privilege cloud IAM, bucket policy, scanner health, and archive retention.</td></tr>
+        </tbody>
+      </table>
+      <p class="info"><strong>Availability note:</strong> the API, database, object storage, malware scanner, email service, and optional audit archive are separate dependencies. Failures can prevent the related workflow; security checks should not be bypassed to make it appear successful.</p>
+      <p>For hands-on user steps, see <a href="user-workflows.html">User workflows</a>. Configuration, test commands, and known risks are documented in the repository README and threat model.</p>
+    </section>
+  </main>
+  <footer>TrustVault architecture guide · Reflects the documented design; confirm production settings in the deployed environment.</footer>
+</body>
+</html>

@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { setAccessToken } from "../api";
+import { api, setAccessToken } from "../api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-if (import.meta.env.PROD && (!import.meta.env.VITE_API_URL || !API_URL.startsWith("https://"))) {
-  throw new Error("VITE_API_URL must be an HTTPS URL in production.");
-}
+const API_URL = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || "http://localhost:8000");
 
 const features = [
   {
@@ -30,6 +27,10 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [mfaChallengeToken, setMfaChallengeToken] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState("");
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
 
   // State for the Social Login "Coming Soon" popup
   const [comingSoonProvider, setComingSoonProvider] = useState(null);
@@ -116,7 +117,11 @@ export default function AuthPage() {
         });
       }
 
-      const data = await response.json().catch(() => ({}));
+      const contentType = response.headers.get("Content-Type")?.toLowerCase() || "";
+      if (!contentType.includes("application/json") && !contentType.includes("+json")) {
+        throw new Error("The API returned a web page instead of JSON. Check VITE_API_URL and the Netlify API proxy rules.");
+      }
+      const data = await response.json();
       if (!response.ok) {
         const detail = Array.isArray(data.detail)
           ? data.detail.map((item) => item.msg).join(" ")
@@ -133,7 +138,15 @@ export default function AuthPage() {
           confirmPassword: "",
         }));
       } else {
+        if (data.mfa_required) {
+          setMfaChallengeToken(data.challenge_token);
+          return;
+        }
         setAccessToken(data.access_token);
+        if (data.mfa_setup_required) {
+          navigate("/auth/mfa-setup");
+          return;
+        }
         navigate("/dashboard");
       }
     } catch (error) {
@@ -146,6 +159,55 @@ export default function AuthPage() {
       setIsSubmitting(false);
     }
   };
+
+  const verifyMfa = async (event) => {
+    event.preventDefault();
+    setMfaSubmitting(true);
+    setMfaError("");
+    try {
+      const data = await api.verifyMfaChallenge(mfaChallengeToken, mfaCode.trim());
+      setAccessToken(data.access_token);
+      navigate("/dashboard");
+    } catch (error) {
+      setMfaError(error.message);
+    } finally {
+      setMfaSubmitting(false);
+    }
+  };
+
+  if (mfaChallengeToken) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <form onSubmit={verifyMfa} className="w-full max-w-md rounded-2xl bg-white p-8 shadow">
+          <h1 className="text-2xl font-bold text-gray-900">Verify your identity</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Enter your authenticator code or a one-time recovery code.
+          </p>
+          {mfaError && <p role="alert" className="mt-4 text-sm text-red-600">{mfaError}</p>}
+          <label htmlFor="mfa-login-code" className="mt-6 block text-sm font-semibold text-gray-700">
+            Verification code
+          </label>
+          <input
+            id="mfa-login-code"
+            autoComplete="one-time-code"
+            required
+            minLength={6}
+            maxLength={32}
+            value={mfaCode}
+            onChange={(event) => setMfaCode(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3"
+          />
+          <button
+            type="submit"
+            disabled={mfaSubmitting}
+            className="mt-6 w-full rounded-xl bg-[#171440] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {mfaSubmitting ? "Verifying..." : "Continue"}
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <section className="relative py-20 lg:py-10 overflow-hidden bg-white text-gray-900 font-sans">
