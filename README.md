@@ -217,15 +217,38 @@ There are no pre-created demo accounts or default passwords in this project.
 Create isolated local test accounts and record their values in a password
 manager or private local notes. Do not commit actual credentials here.
 
-| Test account | Placeholder email | Role / setup | Password placeholder |
+
+| Test account | Email | Role / setup | Demo password |
 | --- | --- | --- | --- |
-| Administrator | `<LOCAL_ADMIN_EMAIL>` | Create with `backend/bootstrap_admin.py`; use a corporate-domain email and enroll in TOTP MFA at first sign-in. | `<SET_A_UNIQUE_LOCAL_PASSWORD_12_PLUS_CHARACTERS>` |
-| Internal member | `<LOCAL_MEMBER_EMAIL>` | Invite from the local administrator account, then accept the invitation. | `<SET_DURING_INVITATION>` |
-| External client | `<LOCAL_EXTERNAL_EMAIL>` | Invite for one document and grant `READ`; verify that `WRITE` is unavailable. | `<SET_DURING_INVITATION>` |
+| Administrator | `admin@trustvault.com` | Existing demo administrator; enroll in TOTP MFA if prompted. | `admin@1234567` |
+| Internal member | `sara@trustvault.com` |demo member|`sara@12345678` |
+| Internal member | `naresh@trustvault.com` |demo member |`naresh@1234567` |
+| Internal member | `harish@trustvault.com` | demo member|`harish@1234567` |
+| External client |  | Invite for one document and grant `READ`; verify that `WRITE` is unavailable. | Set during invitation. |
+
 
 These are **placeholders, not working accounts**. Use test-only email
 addresses and services. If SES is unavailable, invitation and share-email
 tests require a fake email service or appropriate backend tests.
+
+## SES sandbox OTP test inboxes
+
+These recipient addresses are verified for testing email delivery through
+Amazon SES. While the SES account is in the sandbox, test OTP and invitation
+emails only with verified recipient addresses (and a verified sender identity).
+For an OTP test, sign in to TrustVault with a demo account, trigger an action
+that sends an OTP to one of these addresses, then open that mailbox and enter
+the received code in TrustVault. Mailbox passwords are not documented here;
+share inbox access through an approved secure channel.
+
+| Test inbox | Verified recipient | pass|
+| --- | --- |---|
+| SES test inbox 1 | `trustvaulttest1@outlook.com` |`test@1234`|
+
+check mails in junkbox 
+
+If SES is unavailable, invitation and share-email tests require a fake email
+service or appropriate backend tests.
 
 ## Configuration reference
 
