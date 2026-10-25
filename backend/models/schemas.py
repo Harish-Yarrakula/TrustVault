@@ -4,7 +4,7 @@ import hashlib
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import Index, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
 
@@ -157,6 +157,12 @@ class CompanyUser(SQLModel, table=True):
     invitation_expires_at: Optional[datetime] = Field(default=None)
     invitation_accepted_at: Optional[datetime] = Field(default=None)
     access_expires_at: Optional[datetime] = Field(default=None, index=True)
+    session_version: int = Field(default=0, nullable=False)
+    mfa_enabled: bool = Field(default=False, nullable=False)
+    mfa_secret_encrypted: Optional[str] = Field(default=None, max_length=512)
+    mfa_pending_secret_encrypted: Optional[str] = Field(default=None, max_length=512)
+    mfa_recovery_hashes: Optional[str] = Field(default=None)
+    mfa_last_verified_step: Optional[int] = Field(default=None)
     invited_by: Optional[UUID] = Field(default=None, foreign_key="company_users.id")
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
     updated_at: datetime = Field(default_factory=utc_now, nullable=False)
@@ -176,7 +182,14 @@ class CompanyUser(SQLModel, table=True):
 class Document(SQLModel, table=True):
     __tablename__ = "documents"
     __table_args__ = (
-        UniqueConstraint("company_id", "content_sha256", name="uq_documents_company_checksum"),
+        Index(
+            "uq_documents_company_checksum_active",
+            "company_id",
+            "content_sha256",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -189,8 +202,11 @@ class Document(SQLModel, table=True):
     content_type: str = Field(
         default="application/octet-stream", max_length=255, nullable=False
     )
+    expected_size: Optional[int] = Field(default=None, ge=1)
+    upload_verified_at: Optional[datetime] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
     updated_at: datetime = Field(default_factory=utc_now, nullable=False)
+    deleted_at: Optional[datetime] = Field(default=None, index=True)
 
 
 class DocumentPermission(SQLModel, table=True):
@@ -249,6 +265,8 @@ class DocumentShareLink(SQLModel, table=True):
     otp_code_hash: Optional[str] = Field(default=None, max_length=255)
     otp_expires_at: Optional[datetime] = Field(default=None)
     otp_verified_at: Optional[datetime] = Field(default=None)
+    otp_attempts: int = Field(default=0, nullable=False)
+    otp_locked_until: Optional[datetime] = Field(default=None)
     recipient_email: str = Field(max_length=255, index=True)
     max_downloads: int = Field(default=1, ge=1, nullable=False)
     download_count: int = Field(default=0, ge=0, nullable=False)
@@ -263,6 +281,13 @@ class DocumentShareLink(SQLModel, table=True):
 
 class AuditEvent(SQLModel, table=True):
     __tablename__ = "audit_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "company_id",
+            "sequence_number",
+            name="uq_audit_events_company_sequence",
+        ),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     company_id: UUID = Field(foreign_key="companies.id", index=True, nullable=False)
@@ -298,3 +323,11 @@ class UserNotification(SQLModel, table=True):
     audit_event_id: UUID = Field(foreign_key="audit_events.id", index=True, nullable=False)
     read_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=utc_now, index=True, nullable=False)
+
+
+class RateLimitBucket(SQLModel, table=True):
+    __tablename__ = "rate_limit_buckets"
+
+    key_hash: str = Field(max_length=64, primary_key=True)
+    window_started_at: datetime = Field(default_factory=utc_now, nullable=False)
+    attempt_count: int = Field(default=0, nullable=False)

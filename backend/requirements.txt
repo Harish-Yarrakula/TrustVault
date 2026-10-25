@@ -8,11 +8,3 @@ python-dotenv>=1.0
 boto3>=1.34
 email-validator>=2.1
 pytest>=8.0
-
-
-#demomails
-#trustvaulttest1@outlook.com
-#trustvaulttest2@outlook.com
-#trustvaulttest3@outlook.com
-
-#password-trustvault@1234

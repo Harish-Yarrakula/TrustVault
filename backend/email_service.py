@@ -80,43 +80,31 @@ def send_share_otp(recipient: str, otp: str, expires_at: object) -> str:
     )
 
 
-def send_share_link(recipient: str, share_url: str, expires_at: object) -> str:
+def send_share_link(
+    recipient: str,
+    share_url: str,
+    expires_at: object,
+    otp_required: bool = False,
+) -> str:
     expiration = escape(str(expires_at))
     safe_url = escape(share_url, quote=True)
+    otp_note = (
+        "\nA separate email contains the required verification code."
+        if otp_required
+        else ""
+    )
+    html_otp_note = (
+        "<p>A separate email contains the required verification code.</p>"
+        if otp_required
+        else ""
+    )
     return send_email(
         recipient,
         "A TrustVault document was shared with you",
-        f"A document was shared with you.\n\nOpen it here: {share_url}\nThis link expires at {expires_at}.",
+        (
+            f"A document was shared with you.\n\nOpen it here: {share_url}"
+            f"{otp_note}\nThis link expires at {expires_at}."
+        ),
         f'<p>A document was shared with you.</p><p><a href="{safe_url}">Open document</a></p>'
-        f"<p>This link expires at {expiration}.</p>",
+        f"{html_otp_note}<p>This link expires at {expiration}.</p>",
     )
-if __name__ == "__main__":
-    from datetime import datetime, timedelta, timezone
-
-    # Replace with your test recipient email
-    TEST_RECIPIENT = "trustvaulttest3@outlook.com"
-    expiry_time = datetime.now(timezone.utc) + timedelta(hours=24)
-
-    print(f"Sending test emails to: {TEST_RECIPIENT}...")
-
-    try:
-        # Test 1: Send OTP
-        otp_id = send_share_otp(
-            recipient=TEST_RECIPIENT,
-            otp="749201",
-            expires_at=expiry_time.strftime("%Y-%m-%d %H:%M:%S UTC"),
-        )
-        print(f" [1/2] OTP Sent! SES Message ID: {otp_id}")
-
-        # Test 2: Send Guest Invitation
-        invite_id = send_guest_invitation(
-            recipient=TEST_RECIPIENT,
-            token="test-token-uuid-v4-abc-123",
-            expires_at=expiry_time.strftime("%Y-%m-%d %H:%M:%S UTC"),
-        )
-        print(f" [2/2] Invitation Sent! SES Message ID: {invite_id}")
-
-    except EmailDeliveryError as err:
-        print(f"\n Delivery failed: {err}")
-        if err.__cause__:
-            print(f"Underlying AWS error: {err.__cause__}")

@@ -1,5 +1,5 @@
-"""Initialize the fixed SQLModel schema for the demo database."""
-import server  # Registers all application SQLModel tables, including token revocations.
+"""Initialize the SQLModel schema in the configured PostgreSQL database."""
+import server as _server  # Registers all application SQLModel tables.
 from db import init_db
 
 
