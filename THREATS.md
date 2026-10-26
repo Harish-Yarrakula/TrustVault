@@ -8,7 +8,6 @@ configured safely.
 
 | Severity | Threat | Protection | Remaining risk |
 | --- | --- | --- | --- |
-| 🔴 **Critical** | A user accesses another tenant's files or a file they were not granted. | The API checks tenant, owner, and document permissions on protected requests. Admin status alone does not grant file access. | Test every document route. Revocation cannot remove copies already downloaded. |
 | 🟠 **High** | Stolen passwords, brute force, or stolen sessions. | Password hashing, request rate limits, session checks, logout revocation, and mandatory admin MFA. | No SSO, phishing-resistant MFA, password reset, or central device/session manager is promised. |
 | 🟠 **High** | A harmful, fake, or oversized upload is accepted. | The API checks file type, size, signature, and checksum; ClamAV scans files before availability. Scanner errors fail closed. | Keep the 10 MiB UI and 25 MiB API limits aligned. Keep scanner signatures updated. |
 | 🟠 **High** | Private documents, secrets, or audit records are exposed or altered. | Private storage, short-lived upload forms, API-authorized reads, restricted services, and a separate Object Lock audit archive. | Verify real cloud IAM, bucket retention, TLS, firewall, and secret settings. Privileged cloud or app compromise is not prevented. |
